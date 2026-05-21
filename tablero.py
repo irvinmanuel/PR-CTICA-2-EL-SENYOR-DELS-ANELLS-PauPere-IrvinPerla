@@ -4,19 +4,28 @@ import numpy as np
 import random
 from search import Node, UndirectedGraph, GraphProblem, astar_search
 #from utils import show_map
+
 SIZE = 12
 MAX_BRONZE=6
 MAX_SILVER=3
 MAX_GOLD=1
 barrera5_count = 0
 MAX_BARRERA5 = 2
+puede_plata = False
+puede_oro = False
+
+bronze_count = 0
+silver_count = 0    
+gold_count = 0
+
+
 
 
 direcciones = [
     (-1, 0),  # arriba
     (1, 0),   # abajo
     (0, -1),  # izquierda
-    (0, 1),  
+    (0, 1),  # derecha
     (-1, -1), 
     (-1, 1),  
     (1, -1),  
@@ -28,9 +37,7 @@ board = np.empty((SIZE, SIZE), dtype=str)
 #creamos el tablero y lo llenamos de casillas vacias representadas por "⬛"
 def crear_tablero():
     global bronze_count, silver_count, gold_count
-    bronze_count = 0
-    silver_count = 0
-    gold_count = 0
+  
 
     for i in range(SIZE):
         for j in range(SIZE):
@@ -52,6 +59,9 @@ def crear_tablero():
                     board[x][y] = "🥇"
                     gold_count += 1
                 break
+    bronze_count = 0
+    silver_count = 0
+    gold_count = 0
 
     #colocamos las barreras de forma aleatoria, asegurándonos de que no se superpongan ni salgan del tablero
     for barrier_size in typerBerrier:
@@ -90,6 +100,10 @@ def crear_tablero():
                     board[px][py] = "🧱"
 
                 break
+        
+
+
+    #colocamos al jugador        
     x = random.randint(0, SIZE - 1)
     y = random.randint(0, SIZE - 1)
     while board[x][y] != "⬛":
@@ -101,6 +115,9 @@ def crear_tablero():
 
     print(board)
     print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
+    if buscar_mejor_camino(board) is None:
+        print("ESTE TABLERO NO TIENE SOLUCIÓN, GENERANDO UNO NUEVO...\n\n")
+        return crear_tablero()
     return board
 
 def find_player_position(board):
@@ -117,6 +134,8 @@ def find_Cards(symbol, board):
             if board[i][j] == symbol:
                 cards.append((i, j))
     return cards
+
+
 def generar_grafo(board, celdas_bloqueadas=set()):
     grafo = {}
 
@@ -138,7 +157,7 @@ def generar_grafo(board, celdas_bloqueadas=set()):
 
             grafo[(i, j)] = vecinos
     
-        
+
     return UndirectedGraph(grafo)
 
 def puede_moverse(pos, board):
@@ -147,9 +166,14 @@ def puede_moverse(pos, board):
         return False
     if board[x][y] == "🧱":
         return False
+    
+    if board[x][y] == "🥈" and not puede_plata:
+        return False
+    if board[x][y] == "🥇" and not puede_oro:
+        return False
     return True
 
-def buscar_mejor_camino(board, grafo):
+def buscar_mejor_camino(board):
     inicio = find_player_position(board)
 
     bronces = find_Cards("🥉", board)
@@ -160,18 +184,19 @@ def buscar_mejor_camino(board, grafo):
     posicion_actual = inicio
 
     fases = [
-        # (monedas a recoger, celdas bloqueadas durante esta fase)
-        (bronces, set(platas) | set(oros)),
-        (platas,  set(oros)),
-        (oros,    set()),
+        (bronces, frozenset(platas) | frozenset(oros)),
+        (platas,  frozenset(oros)),
+        (oros,    frozenset()),
     ]
 
     for grupo, bloqueadas in fases:
         if not grupo:
             continue
 
-        # Grafo sin las monedas que aún no se pueden coger
         grafo_fase = generar_grafo(board, celdas_bloqueadas=bloqueadas)
+
+        # Cache por fase: (origen, destino) -> path calculado
+        cache = {}
 
         mejor_coste = float("inf")
         mejor_camino_grupo = None
@@ -184,14 +209,20 @@ def buscar_mejor_camino(board, grafo):
             valido = True
 
             for moneda in perm:
-                problema = Tablero(board, grafo_fase, posicion, moneda)
-                sol = astar_search(problema)
+                key = (posicion, moneda)
 
-                if sol is None:
+                if key not in cache:
+                    problema = Tablero(board, grafo_fase, posicion, moneda)
+                    sol = astar_search(problema)
+                    # Guardamos el path o None si no hay solución
+                    cache[key] = sol.path() if sol is not None else None
+
+                path = cache[key]
+
+                if path is None:
                     valido = False
                     break
 
-                path = sol.path()
                 camino_total.extend(n.state for n in path[1:])
                 coste_total += len(path) - 1
                 posicion = moneda
@@ -202,21 +233,67 @@ def buscar_mejor_camino(board, grafo):
                 mejor_posicion_final = posicion
 
         if mejor_camino_grupo is None:
-            print("No se encontró camino válido para una fase")
             return None
 
         camino_completo.extend(mejor_camino_grupo)
         posicion_actual = mejor_posicion_final
 
     return camino_completo
+def pintar_camino(board, camino, solo_siguiente=False):
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if board[i][j] == "🟦":
+                board[i][j] = "⬛"  # Limpiar posición del jugador
+    if solo_siguiente:
+        if camino:
+            i, j = camino[0]
+            if board[i][j] == "⬛" :
+                board[i][j] = "🟦"
+    else:
+        for i, j in camino:
+            if board[i][j] == "⬛":
 
-
-def pintar_camino(board, camino):
-
-    for i, j in camino:
-            board[i][j] = "🟦"
-
+                board[i][j] = "🟦"
+        
+    print(board)
     return board
+
+
+def mover_jugador(board, posicion_actual, direccion, ):
+    global puede_plata, puede_oro, ganaste
+    global bronze_count, silver_count, gold_count
+
+   
+    y, x = posicion_actual
+    dy, dx = direccion
+    nueva_posicion = ( y + dy, x + dx,)
+
+    if puede_moverse(nueva_posicion, board, ):
+        if board[nueva_posicion[0]][nueva_posicion[1]] == "🥉":
+            print("Has recogido una moneda de bronce")
+            bronze_count += 1
+            if bronze_count >= MAX_BRONZE:
+                puede_plata = True
+        elif board[nueva_posicion[0]][nueva_posicion[1]] == "🥈":
+            print("Has recogido una moneda de plata")
+            silver_count += 1
+            if silver_count >= MAX_SILVER:
+                puede_oro = True
+        elif board[nueva_posicion[0]][nueva_posicion[1]] == "🥇":
+            print("Has recogido una moneda de oro") 
+            gold_count += 1
+            ganaste = True
+        board[y][x] = "⬛"  # Aseguramos que el jugador se mantenga visible
+        board[nueva_posicion[0]][nueva_posicion[1]] = "🧘"
+
+
+        print(board)
+        print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
+        return nueva_posicion
+    
+    else:
+
+        return posicion_actual
 
 
 
@@ -235,11 +312,10 @@ def main():
     """Función principal del programa."""
 
     board = crear_tablero()
-    grafo = generar_grafo(board)
     print("Tablero y grafo creados correctamente")
     print(board)
     print("Grafo generado correctamente")
-    camino=buscar_mejor_camino(board, grafo)
+    camino=buscar_mejor_camino(board)
     board = pintar_camino(board, camino)
     print(board)
     """problema = Tablero(board, grafo)
