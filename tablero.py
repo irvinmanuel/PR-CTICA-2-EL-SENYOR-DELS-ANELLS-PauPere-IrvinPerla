@@ -251,70 +251,87 @@ def buscar_mejor_camino(board):
         posicion_actual = mejor_posicion_final
 
     return camino_completo
-def pintar_camino(board, camino, solo_siguiente=False):
-    for i in range(SIZE):
-        for j in range(SIZE):
-            if board[i][j] == "🟦":
-                board[i][j] = "⬛"  # Limpiar posición del jugador
+
+
+
+def pintar_camino(board, camino, solo_siguiente=False, limpiar=True):
+    if limpiar:
+        # Primero limpiamos TODOS los caminos azules previos del tablero
+        for i in range(SIZE):
+            for j in range(SIZE):
+                if board[i][j] == "🟦":
+                    board[i][j] = "⬛"  
+
     if solo_siguiente:
         if camino:
             i, j = camino[0]
-            if board[i][j] == "⬛" :
+            if board[i][j] == "⬛":
                 board[i][j] = "🟦"
     else:
         for i, j in camino:
             if board[i][j] == "⬛":
-
                 board[i][j] = "🟦"
         
     print(board)
     return board
 
 
-def mover_jugador(board, posicion_actual, direccion, ):
+def mover_jugador(board, posicion_actual, direccion, pista_coordenada=None):
     global puede_plata, puede_oro, ganaste
     global bronze_count, silver_count, gold_count
     global movimientos, movimientos_maximos
 
-   
     y, x = posicion_actual
     dy, dx = direccion
-    nueva_posicion = ( y + dy, x + dx,)
+    nueva_posicion = (y + dy, x + dx)
 
-    if puede_moverse(nueva_posicion, board, ):
+    if puede_moverse(nueva_posicion, board):
         movimientos += 1
         print(f"Movimientos: {movimientos}/{movimientos_maximos}")  
-        if board[nueva_posicion[0]][nueva_posicion[1]] == "🥉":
+        
+        # Guardamos qué elemento había en la nueva posición antes de pisarlo
+        objeto_en_casilla = board[nueva_posicion[0]][nueva_posicion[1]]
+
+        if objeto_en_casilla == "🥉":
             print("Has recogido una moneda de bronce")
             bronze_count += 1
             if bronze_count >= MAX_BRONZE:
                 puede_plata = True
-        elif board[nueva_posicion[0]][nueva_posicion[1]] == "🥈":
+        elif objeto_en_casilla == "🥈":
             print("Has recogido una moneda de plata")
             silver_count += 1
             if silver_count >= MAX_SILVER:
                 puede_oro = True
-        elif board[nueva_posicion[0]][nueva_posicion[1]] == "🥇":
+        elif objeto_en_casilla == "🥇":
             print("🏆 Has recogido la moneda de oro")
             gold_count += 1
             ganaste = True
-
             print(f"Ganaste usando {movimientos} movimientos")
             print(f"Límite permitido: {movimientos_maximos}")
-            return (1000,1000)  # Retorna un valor alto para indicar victoria
-        board[y][x] = "⬛"  # Aseguramos que el jugador se mantenga visible
+            return (1000, 1000)
+            
+        # Al movernos, la casilla antigua pasa a ser pasillo vacío ("⬛")
+        board[y][x] = "⬛"  
+        # El jugador se posiciona en la nueva casilla (reemplazando si era "🟦", "⬛", etc.)
         board[nueva_posicion[0]][nueva_posicion[1]] = "🧘"
 
+        # --- Modo Asistencia Unitaria (Tecla 'q') ---
+        if nueva_posicion == pista_coordenada:
+            camino = buscar_mejor_camino(board)
+            if camino:
+                pintar_camino(board, camino, solo_siguiente=True)
+        else:
+            # Si no es asistencia unitaria, simplemente reimprimimos el tablero con el camino restante
+            print(board)
+            print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
 
-        print(board)
-        print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
         if movimientos >= movimientos_maximos:
             print("¡Has superado el límite de movimientos! Has perdido.")
-            return (-1000, -1000)  # Retorna un valor bajo para indicar derrota
+            return (-1000, -1000)
+            
         return nueva_posicion
     
     else:
-
         return posicion_actual
     
 
