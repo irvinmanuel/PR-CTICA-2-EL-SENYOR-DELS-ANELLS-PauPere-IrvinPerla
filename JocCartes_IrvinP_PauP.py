@@ -7,9 +7,9 @@ import time
 
 from games import Game, minmax_decision
 
-OR = "Or"
-PLATA = "Plata"
-BRONZE = "Bronze"
+OR = "Or 🥇"
+PLATA = "Plata 🥈"
+BRONZE = "Bronze 🥉"
 
 JERARQUIA = {BRONZE: 1, PLATA: 2, OR: 3}
 JERARQUIA_NOM = {1: BRONZE, 2: PLATA, 3: OR}
@@ -163,6 +163,12 @@ class JocSenyorAnells(Game):
             e["torn"] = opon
 
         elif move == "BLOQUEJAR_OPONENT":
+            carta = _key(e, "descoberta", qui)
+            if carta:
+                baralla = list(_key(e, "baralla", qui)) + [carta]
+                seed_text = f"{qui}|{e['pasos']}|{','.join(baralla)}|{carta}|BLOQUEO"
+                e[f"baralla_{qui}"] = _barreja_determinista(baralla, seed_text)
+                e[f"descoberta_{qui}"] = None
             e[f"bloqueig_{opon}"] = _key(e, "bloqueig", opon) + 1
             e[f"bloqueo_usado_{qui}"] = True
             e["torn"] = opon
@@ -244,6 +250,10 @@ def mostrar_estat(estat):
 
 
 def demanar_accio(accions):
+    if len(accions) == 1:
+        unica = accions[0]
+        print(f"\nAccio unica: {NOM_ACCIO.get(unica, unica)}")
+        return unica
     print("\nACCIONS DISPONIBLES:")
     for i, a in enumerate(accions, 1):
         print(f"  {i}. {NOM_ACCIO.get(a, a)}")
@@ -302,7 +312,10 @@ REGLES:
 
     while not joc.terminal_test(estat):
         torn_num += 1
+        print(f"\n{'-'*54} ")
         print(f"\n{'-'*20} TORN {torn_num} {'-'*20}")
+        print(f"\n{'-'*54} ")
+
         mostrar_estat(estat)
 
         qui = estat["torn"]

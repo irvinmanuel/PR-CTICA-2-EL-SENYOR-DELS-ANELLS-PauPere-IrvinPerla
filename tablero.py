@@ -331,28 +331,3 @@ class Tablero(GraphProblem):
         x1, y1 = node.state
         x2, y2 = self.goal
         return abs(x1 - x2) + abs(y1 - y2)
-def main():
-    """Función principal del programa."""
-
-    board = crear_tablero()
-    print("Tablero y grafo creados correctamente")
-    print(board)
-    print("Grafo generado correctamente")
-    camino=buscar_mejor_camino(board)
-    board = pintar_camino(board, camino)
-    print(board)
-    """problema = Tablero(board, grafo)
-    solucion = astar_search(problema)
-    print("Solución encontrada:", solucion is not None)
-    if solucion:
-        camino = solucion.path()
-
-        print("\n📍 Camino encontrado:\n")
-        for nodo in camino:
-            print(nodo.state)"""
-   
-
-    print("Tablero creado correctamente")
-
-if __name__ == "__main__":
-        main()
