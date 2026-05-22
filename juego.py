@@ -15,22 +15,21 @@ def main():
 
     keyboard.wait("z")
     board = tablero.crear_tablero()
-    
-
+    nueva_posicion = tablero.find_player_position(board)
     while True:
         event = keyboard.read_event()
         if event.event_type == keyboard.KEY_DOWN:
             if event.name == "flecha izquierda":
-                tablero.mover_jugador(board, tablero.find_player_position(board), (0, -1))  # Mover a la izquierda
+                nueva_posicion = tablero.mover_jugador(board, nueva_posicion, (0, -1))  # Mover a la izquierda
                 print("Flecha izquierda presionada")
             elif event.name == "flecha derecha":
-                tablero.mover_jugador(board, tablero.find_player_position(board), (0, 1))  # Mover a la derecha
+                nueva_posicion = tablero.mover_jugador(board, nueva_posicion, (0, 1))  # Mover a la derecha
                 print("Flecha derecha presionada")
             elif event.name == "flecha arriba":
-                tablero.mover_jugador(board, tablero.find_player_position(board), (-1, 0))  # Mover hacia arriba
+                nueva_posicion = tablero.mover_jugador(board, nueva_posicion, (-1, 0))  # Mover hacia arriba
                 print("Flecha arriba presionada")
             elif event.name == "flecha abajo":
-                tablero.mover_jugador(board, tablero.find_player_position(board), (1, 0))  # Mover hacia abajo
+                nueva_posicion = tablero.mover_jugador(board, nueva_posicion, (1, 0))  # Mover hacia abajo
                 print("Flecha abajo presionada")
 
             elif event.name == "q":
@@ -41,6 +40,11 @@ def main():
                 camino = tablero.buscar_mejor_camino(board)
                 pitar = tablero.pintar_camino(board, camino,False)
                 print("Algoritmo de búsqueda ejecutado sin mostrar el camino")
+            
+            if nueva_posicion == (1000, 1000):
+                break
+            elif nueva_posicion == (-1000, -1000):
+                break
             
             elif event.name == "esc":
                 break

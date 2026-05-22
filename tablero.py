@@ -1,4 +1,3 @@
-
 import itertools
 import numpy as np
 import random
@@ -18,7 +17,8 @@ bronze_count = 0
 silver_count = 0    
 gold_count = 0
 
-
+movimientos = 0
+movimientos_maximos = 0 
 
 
 direcciones = [
@@ -37,7 +37,8 @@ board = np.empty((SIZE, SIZE), dtype=str)
 #creamos el tablero y lo llenamos de casillas vacias representadas por "⬛"
 def crear_tablero():
     global bronze_count, silver_count, gold_count
-  
+    global movimientos_maximos, movimientos
+
 
     for i in range(SIZE):
         for j in range(SIZE):
@@ -115,9 +116,20 @@ def crear_tablero():
 
     print(board)
     print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
-    if buscar_mejor_camino(board) is None:
+    camino_optimo = buscar_mejor_camino(board)
+
+    if camino_optimo is None:
         print("ESTE TABLERO NO TIENE SOLUCIÓN, GENERANDO UNO NUEVO...\n\n")
         return crear_tablero()
+    
+
+    coste_optimo = len(camino_optimo)
+
+    movimientos = 0
+    movimientos_maximos = coste_optimo + 5
+
+    print(f"Coste óptimo del tablero: {coste_optimo}")
+    print(f"Máximo de movimientos permitidos: {movimientos_maximos}")
     return board
 
 def find_player_position(board):
@@ -262,6 +274,7 @@ def pintar_camino(board, camino, solo_siguiente=False):
 def mover_jugador(board, posicion_actual, direccion, ):
     global puede_plata, puede_oro, ganaste
     global bronze_count, silver_count, gold_count
+    global movimientos, movimientos_maximos
 
    
     y, x = posicion_actual
@@ -269,6 +282,8 @@ def mover_jugador(board, posicion_actual, direccion, ):
     nueva_posicion = ( y + dy, x + dx,)
 
     if puede_moverse(nueva_posicion, board, ):
+        movimientos += 1
+        print(f"Movimientos: {movimientos}/{movimientos_maximos}")  
         if board[nueva_posicion[0]][nueva_posicion[1]] == "🥉":
             print("Has recogido una moneda de bronce")
             bronze_count += 1
@@ -280,20 +295,28 @@ def mover_jugador(board, posicion_actual, direccion, ):
             if silver_count >= MAX_SILVER:
                 puede_oro = True
         elif board[nueva_posicion[0]][nueva_posicion[1]] == "🥇":
-            print("Has recogido una moneda de oro") 
+            print("🏆 Has recogido la moneda de oro")
             gold_count += 1
             ganaste = True
+
+            print(f"Ganaste usando {movimientos} movimientos")
+            print(f"Límite permitido: {movimientos_maximos}")
+            return (1000,1000)  # Retorna un valor alto para indicar victoria
         board[y][x] = "⬛"  # Aseguramos que el jugador se mantenga visible
         board[nueva_posicion[0]][nueva_posicion[1]] = "🧘"
 
 
         print(board)
         print(f"Bronze: {bronze_count}, Silver: {silver_count}, Gold: {gold_count}")
+        if movimientos >= movimientos_maximos:
+            print("¡Has superado el límite de movimientos! Has perdido.")
+            return (-1000, -1000)  # Retorna un valor bajo para indicar derrota
         return nueva_posicion
     
     else:
 
         return posicion_actual
+    
 
 
 
